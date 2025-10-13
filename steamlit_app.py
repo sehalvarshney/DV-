@@ -1,67 +1,107 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import seaborn as sns
+import matplotlib.pyplot as plt
+import folium
+from streamlit_folium import st_folium
 
-st.title("DV Assignment")
-st.header("Streamlit Data Visualisation App")
+# ------------------------------
+# STREAMLIT APP HEADER
+# ------------------------------
+st.title("🌍 Global Warming Data Visualization App")
+st.header("Interactive Data Insights Dashboard")
 st.subheader("By: Sehal Varshney")
 
-# Upload CSV file
-uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
+# ------------------------------
+# FILE UPLOAD
+# ------------------------------
+uploaded_file = st.file_uploader("Upload your Global Warming CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    # Read CSV into DataFrame
     df = pd.read_csv(uploaded_file)
 
-    # Show preview
-    st.write("### Preview of Data", df.head())
+    # Data Preview
+    st.write("### 🧾 Data Preview", df.head())
+    st.write(f"Shape of dataset: {df.shape}")
+    st.write("### Column Information")
+    st.write(df.dtypes)
 
-    # Dropdowns to choose columns
+    # Select numeric and all columns
     numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns.tolist()
     all_cols = df.columns.tolist()
 
+    # ------------------------------
+    # BASIC PLOTLY VISUALIZATIONS
+    # ------------------------------
+    st.markdown("## 📊 Interactive Chart Explorer")
+
     x_axis = st.selectbox("Select X-axis", options=all_cols)
     y_axis = st.selectbox("Select Y-axis", options=numeric_cols)
+    chart_type = st.radio(
+        "Choose chart type",
+        ["Scatter", "Line", "Bar", "Histogram", "Boxplot", "Heatmap (Seaborn)"],
+        horizontal=True
+    )
 
-    chart_type = st.radio("Choose chart type", ["Scatter", "Line", "Bar", "Histogram", "Boxplot"])
-
-    # Plotly visualizations
     if chart_type == "Scatter":
         fig = px.scatter(df, x=x_axis, y=y_axis, title=f"{y_axis} vs {x_axis}")
+        st.plotly_chart(fig, use_container_width=True)
+
     elif chart_type == "Line":
         fig = px.line(df, x=x_axis, y=y_axis, title=f"{y_axis} over {x_axis}")
+        st.plotly_chart(fig, use_container_width=True)
+
     elif chart_type == "Bar":
         fig = px.bar(df, x=x_axis, y=y_axis, title=f"{y_axis} by {x_axis}")
+        st.plotly_chart(fig, use_container_width=True)
+
     elif chart_type == "Histogram":
-        fig = px.histogram(df, x=y_axis, nbins=20, title=f"Distribution of {y_axis}")
+        fig = px.histogram(df, x=y_axis, nbins=30, title=f"Distribution of {y_axis}")
+        st.plotly_chart(fig, use_container_width=True)
+
     elif chart_type == "Boxplot":
         fig = px.box(df, x=x_axis, y=y_axis, title=f"Boxplot of {y_axis} by {x_axis}")
+        st.plotly_chart(fig, use_container_width=True)
 
-    # Show interactive chart
-    st.plotly_chart(fig, use_container_width=True)
+    elif chart_type == "Heatmap (Seaborn)":
+        st.write("### 🔥 Correlation Heatmap")
+        corr = df[numeric_cols].corr()
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5, ax=ax)
+        st.pyplot(fig)
 
-    # -------------------------------
-    # Misleading Visualisation Section
-    # -------------------------------
-    st.markdown("## 🚨 Analyse Misleading Visualisations")
+   
 
-    misleading = st.checkbox("Show an example of a misleading chart")
-    if misleading:
-        # Misleading chart: truncated y-axis
-        fig_bad = px.line(df, x=x_axis, y=y_axis, title=f"⚠️ Misleading Chart: Truncated Y-axis")
-        fig_bad.update_yaxes(range=[df[y_axis].min()*0.9, df[y_axis].max()*0.95])  # cuts off real range
-        st.plotly_chart(fig_bad, use_container_width=True)
-        st.write(
-            "**Why misleading?**\n"
-            "- The Y-axis is truncated, making changes look smaller/larger than reality.\n"
-            "- Hides true variation in the data."
-        )
+    # ------------------------------
+    # DEEP INSIGHT CHARTS (SEABORN)
+    # ------------------------------
+    st.markdown("## 📈 Deep Insights (Seaborn Visuals)")
 
-        # Correct chart
-        fig_good = px.line(df, x=x_axis, y=y_axis, title=f"✅ Correct Chart: Full Y-axis")
-        st.plotly_chart(fig_good, use_container_width=True)
-        st.write(
-            "**Why better?**\n"
-            "- Starts from zero or appropriate baseline.\n"
-            "- Shows actual scale of the data without exaggeration."
-        )
+    insight_type = st.selectbox(
+        "Choose advanced insight",
+        ["Pairplot", "Trend Over Time", "Distribution Plot"]
+    )
+
+    if insight_type == "Pairplot":
+        st.write("### Pairwise Relationships")
+        fig = sns.pairplot(df[numeric_cols])
+        st.pyplot(fig)
+
+    elif insight_type == "Trend Over Time":
+        time_col = st.selectbox("Select time/date column", options=all_cols)
+        fig, ax = plt.subplots(figsize=(10, 5))
+        sns.lineplot(data=df, x=time_col, y=y_axis, ax=ax)
+        plt.title(f"Trend of {y_axis} over {time_col}")
+        st.pyplot(fig)
+
+    elif insight_type == "Distribution Plot":
+        fig, ax = plt.subplots(figsize=(8, 5))
+        sns.histplot(df[y_axis], kde=True, ax=ax)
+        plt.title(f"Distribution of {y_axis}")
+        st.pyplot(fig)
+
+    
+
+else:
+    st.info("📤 Please upload your Global Warming dataset (CSV format) to begin visualization.")
